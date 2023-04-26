@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33530.505
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UPSMonitor", "UPSMonitor\UPSMonitor.csproj", "{835A92E1-79AF-47D1-99FE-16BB2AC61CA6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UPSMonitorService", "UPSMonitorService\UPSMonitorService.csproj", "{AC2DC556-2F5D-47FC-8EF3-C571AF424340}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{835A92E1-79AF-47D1-99FE-16BB2AC61CA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{835A92E1-79AF-47D1-99FE-16BB2AC61CA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{835A92E1-79AF-47D1-99FE-16BB2AC61CA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{835A92E1-79AF-47D1-99FE-16BB2AC61CA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC2DC556-2F5D-47FC-8EF3-C571AF424340}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC2DC556-2F5D-47FC-8EF3-C571AF424340}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC2DC556-2F5D-47FC-8EF3-C571AF424340}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC2DC556-2F5D-47FC-8EF3-C571AF424340}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {88FBCB13-E3CC-4B46-8841-1352369EED1D}
+	EndGlobalSection
+EndGlobal
