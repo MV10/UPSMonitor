@@ -57,9 +57,11 @@ namespace UPSMonitorService
         {
             Timestamp = DateTimeOffset.Now;
 
+            List<CimInstance> data = null;
+
             try
             {
-                var data = QueryCIM("select Name, Status, BatteryStatus, EstimatedChargeRemaining, EstimatedRunTime from Win32_Battery");
+                data = QueryCIM("select Name, Status, BatteryStatus, EstimatedChargeRemaining, EstimatedRunTime from Win32_Battery");
                 if (data.Count > 0)
                 {
                     var props = 
@@ -85,9 +87,15 @@ namespace UPSMonitorService
                 // exceptions every second, or whatever the polling rate is...
                 Health = $"Exception querying CIM for Win32_Battery data: {ex.Message}";
             }
+            finally
+            {
+                if(data != null)
+                {
+                    foreach (var i in data)
+                        i.Dispose();
+                }
+            }
 
-            // should not exceed three lines because the Windows pop-up only
-            // supports four lines, and there is a caption line in the Notify function
             Summary = (string.IsNullOrEmpty(Name))
                 ? "No battery data available."
                 : $"Name: {Name}\n" +
@@ -95,18 +103,22 @@ namespace UPSMonitorService
                 $"Charge: {ChargePct}%, {Runtime}";
         }
 
+
         private CimKeyedCollection<CimProperty> FindBatteryName(List<CimInstance> data)
         {
             foreach(var inst in data)
             {
-                if (inst.CimInstanceProperties["Name"].Equals(config.Settings.BatteryName)) return inst.CimInstanceProperties;
+                if (inst.CimInstanceProperties["Name"].Equals(config.Settings.BatteryName)) 
+                    return inst.CimInstanceProperties;
             }
             return null;
         }
 
-        private static List<CimInstance> QueryCIM(string query, string namespc = @"root\cimv2")
+        private List<CimInstance> QueryCIM(string query, string namespc = @"root\cimv2")
         {
-            var session = CimSession.Create("localhost");
+            // Although the MMI assembly has async versions, they do not return normal Task
+            // objects (they're "Observables"), so they can't be awaited as you'd expect.
+            using var session = CimSession.Create("localhost");
             return session.QueryInstances(namespc, "WQL", query).ToList();
         }
 
@@ -116,6 +128,7 @@ namespace UPSMonitorService
         /// </summary>
         public static readonly Dictionary<int, string> BatteryStatusValues = new()
         {
+            { 0, "CIM Query Failed" },
             { 1, "Discharging" },   // officially "Other"
             { 2, "AC Power" },      // officially "Unknown"
             { 3, "Fully Charged" },

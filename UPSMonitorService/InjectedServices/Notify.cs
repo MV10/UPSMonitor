@@ -1,11 +1,11 @@
 ﻿
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Toolkit.Uwp.Notifications;
 using System.Diagnostics;
-using System.IO;
 using System.IO.Pipes;
 using System.Net.Mail;
 using System.Text;
+using UPSMonitorService.Abstractions;
 
 namespace UPSMonitorService
 {
@@ -25,15 +25,15 @@ namespace UPSMonitorService
         /// <summary>
         /// Sends a message and details to all configured notification channels.
         /// </summary>
-        public void Send(EventLogEntryType eventType, string message, string details = "")
+        public async Task Send(EventLogEntryType eventType, string message, string details = "")
         {
             // popup has limited space, don't prefix the eventType
-            SendPopup(message, details);
+            await SendPopup(message, details);
 
             var flaggedMessage = $"{eventType.ToString().ToUpper()} - {message}";
             SendConsole(flaggedMessage, details);
             SendEventLog(eventType, flaggedMessage, details);
-            SendEmail(flaggedMessage, details);
+            await SendEmail(flaggedMessage, details);
         }
 
         /// <summary>
@@ -43,17 +43,18 @@ namespace UPSMonitorService
         {
             if (!config.Settings.NotificationEventLog) return;
 
-            EventLog.WriteEntry("Application", $"UPSMonitor\n{message}\n{details}", eventType, 9001);
+            Task.Run(() =>
+                EventLog.WriteEntry("Application", $"UPSMonitor\n{message}\n{details}", eventType, 9001)
+                ).FireAndForget();
         }
 
         /// <summary>
         /// Sends a message and details via Email, if enabled.
         /// </summary>
-        public void SendEmail(string message, string details = "")
+        public async Task SendEmail(string message, string details = "")
         {
             // MS says don't use this mail client...
             // https://github.com/dotnet/platform-compat/blob/master/docs/DE0005.md
-            // GMail error - no STARTTLS issued
             // MS recommends this:
             // https://github.com/jstedfast/MailKit
 
@@ -71,14 +72,15 @@ namespace UPSMonitorService
                 var smtp = new SmtpClient(config.Email.MailServerDomain, config.Email.MailServerPort);
                 smtp.EnableSsl = config.Email.UseTLS;
                 smtp.Credentials = config.Email;
-                smtp.Send(email);
+
+                await smtp.SendMailAsync(email);
             }
             catch (Exception ex)
             {
                 config.Settings.NotificationEmails = false;
                 var msg = "Email failed, disabled until next restart.";
                 SendEventLog(EventLogEntryType.Error, msg, ex.Message);
-                if (config.Settings.NotificationPopups) SendPopup(msg, ex.Message);
+                if (config.Settings.NotificationPopups) await SendPopup(msg, ex.Message);
                 Console.WriteLine($"\nWARNING: {msg}\n{ex.Message}\n{ex.InnerException?.Message}\n");
             }
         }
@@ -88,7 +90,7 @@ namespace UPSMonitorService
         /// non-interactively (e.g. as a Windows Service), this will send a Named Pipes message
         /// to the UPSMonitor system tray service.
         /// </summary>
-        public void SendPopup(string message, string details = "")
+        public async Task SendPopup(string message, string details = "")
         {
             if (!config.Settings.NotificationPopups) return;
 
@@ -101,7 +103,7 @@ namespace UPSMonitorService
             }
             else
             {
-                SendNamedPipePopup(message, details);
+                await SendNamedPipePopup(message, details);
             }
         }
 
@@ -125,7 +127,7 @@ namespace UPSMonitorService
         /// <summary>
         /// Sends a message and details via Named Pipe to the UPSMonitor system tray service.
         /// </summary>
-        public void SendNamedPipePopup(string message, string details = "")
+        public async Task SendNamedPipePopup(string message, string details = "")
         {
             // TODO: Add no-popup-flag for silently logging service start/stop to system tray history
 
@@ -142,44 +144,31 @@ namespace UPSMonitorService
                     return;
                 }
 
-                // TODO: use commented-out async WriteString
                 // write the message
                 var msg = (string.IsNullOrEmpty(details)) 
                     ? message 
                     : $"{message}{separatorControlCode}{details}";
-                try
-                {
-                    var messageBuffer = Encoding.ASCII.GetBytes(msg);
-                    var sizeBuffer = BitConverter.GetBytes(messageBuffer.Length);
-                    client.Write(sizeBuffer, 0, sizeBuffer.Length);
-                    client.Write(messageBuffer, 0, messageBuffer.Length);
-                    client.WaitForPipeDrain();
-                }
-                catch (Exception ex)
-                {
-                    //Output(LogLevel.Warning, $"{ex.GetType().Name} while writing stream");
-                }
+
+                await WriteString(client, msg);
             }
         }
 
-        //private static async Task WriteString(PipeStream stream, string message)
-        //{
-        //    try
-        //    {
-        //        var messageBuffer = Encoding.ASCII.GetBytes(message);
+        private async Task WriteString(PipeStream stream, string message)
+        {
+            try
+            {
+                var messageBuffer = Encoding.ASCII.GetBytes(message);
 
-        //        var sizeBuffer = BitConverter.GetBytes(messageBuffer.Length);
-        //        await stream.WriteAsync(sizeBuffer, 0, sizeBuffer.Length);
+                var sizeBuffer = BitConverter.GetBytes(messageBuffer.Length);
+                await stream.WriteAsync(sizeBuffer, 0, sizeBuffer.Length);
 
-        //        if (message.Length > 0)
-        //            await stream.WriteAsync(messageBuffer, 0, messageBuffer.Length);
+                if (message.Length > 0)
+                    await stream.WriteAsync(messageBuffer, 0, messageBuffer.Length);
 
-        //        stream.WaitForPipeDrain();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        //Output(LogLevel.Warning, $"{ex.GetType().Name} while writing stream");
-        //    }
-        //}
+                stream.WaitForPipeDrain();
+            }
+            catch
+            { }
+        }
     }
 }

@@ -2,7 +2,7 @@ namespace UPSMonitorService.App
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var host = Host.CreateDefaultBuilder(args)
 
@@ -22,8 +22,19 @@ namespace UPSMonitorService.App
                 })
                 .Build();
 
-            // TODO: Async everywhere (email is slow)
-            host.Run();
+            // Because C# doesn't have async constructors...
+            await InitializeAsyncSingleton<BatteryState>(host);
+            
+            await host.RunAsync();
         }
+
+        // I considered writing an IHost extension method to find implementations of the
+        // interface by reflection, but this is already overkill for just one of them.
+        private static async Task InitializeAsyncSingleton<ServiceType>(IHost host)
+            => await 
+            (host.Services
+            .GetRequiredService(typeof(ServiceType)) 
+            as IAsyncSingleton)
+            .InitializeAsync();
     }
 }

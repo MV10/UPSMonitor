@@ -11,12 +11,15 @@ namespace UPSMonitorService.App
     {
         private readonly Config config = null;
         private readonly BatteryState batteryState = null;
+        private readonly Notify notify = null;
 
         public ProcessingLoop(Config appConfig, BatteryState state, Notify notifier)
         {
             config = appConfig;
             batteryState = state;
-            LogConfiguration(notifier);
+            notify = notifier;
+
+            LogConfiguration(notify);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -25,7 +28,7 @@ namespace UPSMonitorService.App
             {
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    batteryState.Poll();
+                    await batteryState.Poll();
                     await Task.Delay(config.Settings.PollingSeconds * 1000, stoppingToken);
                 }
             }
