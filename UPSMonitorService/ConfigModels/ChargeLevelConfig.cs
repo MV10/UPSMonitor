@@ -1,7 +1,5 @@
 ﻿namespace UPSMonitorService.Models
 {
-    // TODO: Figure out how to read Windows battery Power Settings to use as defaults.
-
     public class ChargeLevelConfig
     {
         /// <summary>
