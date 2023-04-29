@@ -1,4 +1,4 @@
-﻿namespace UPSMonitorService.Abstractions
+﻿namespace UPSMonitorService
 {
     internal static class TaskExtensions
     {

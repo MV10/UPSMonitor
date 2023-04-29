@@ -22,6 +22,12 @@ namespace UPSMonitorService.App
                 })
                 .Build();
 
+            // log-only startup message (assuming the system tray app is listening...)
+            await (host.Services
+                .GetRequiredService(typeof(Notify)) 
+                as Notify)
+                .SendNamedPipePopup("UPSMonitor background service starting", string.Empty, noPopUp: true);
+
             // Because C# doesn't have async constructors...
             await InitializeAsyncSingleton<BatteryState>(host);
             

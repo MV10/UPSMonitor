@@ -1,5 +1,4 @@
 ﻿using Microsoft.Toolkit.Uwp.Notifications;
-using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
 
@@ -21,25 +20,29 @@ namespace UPSMonitor
 
                     // client has connected, process the message
                     var message = await ReadString(server);
+                    var received = false;
                     if (!string.IsNullOrWhiteSpace(message))
                     {
-                        var messageLines = message.Split(Program.SeparatorControlCode);
-                        if (messageLines.Length > 0)
-                        {
-                            // store the raw message to history
-                            var storedMessage = new Message()
-                            {
-                                Content = message
-                            };
-                            Program.MessageHistory.Enqueue(storedMessage);
+                        received = true;
 
-                            // display the pop-up
-                            var toast = new ToastContentBuilder();
-                            foreach (var line in messageLines)
-                            {
-                                toast.AddText(line);
-                            }
-                            toast.Show();
+                        // look for and strip the no-popup / log-only control code
+                        var noPopUp = message.StartsWith(Program.NoPopupControlCode);
+                        if (noPopUp) message = message.Substring(1);
+
+                        // store the raw message to history
+                        var storedMessage = new Message()
+                        {
+                            Content = message
+                        };
+                        Program.MessageHistory.Enqueue(storedMessage);
+
+                        // display the pop-up
+                        if(!noPopUp)
+                        {
+                            message = message.Replace(Program.SeparatorControlCode, "\n");
+                            new ToastContentBuilder()
+                                .AddText(message)
+                                .Show();
                         }
                     }
 
@@ -51,6 +54,10 @@ namespace UPSMonitor
                     }
                     catch
                     { }
+
+                    // persist message history
+                    if (received) MessageStorage.WriteHistory();
+                        
                 }
             }
             catch (OperationCanceledException) // normal, disregard

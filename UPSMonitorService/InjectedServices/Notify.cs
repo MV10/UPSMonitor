@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Mail;
 using System.Text;
-using UPSMonitorService.Abstractions;
 
 namespace UPSMonitorService
 {
@@ -14,6 +13,7 @@ namespace UPSMonitorService
 
         private static readonly string pipeServerName = "UPSMonitor";
         private static readonly string separatorControlCode = "\u0014";
+        internal static readonly string NoPopupControlCode = "\u0020";
         private static readonly int pipeTimeoutMS = 100; // high, 10 is probably OK for local machine...
 
         public Notify(Config appConfig)
@@ -126,10 +126,8 @@ namespace UPSMonitorService
         /// <summary>
         /// Sends a message and details via Named Pipe to the UPSMonitor system tray service.
         /// </summary>
-        public async Task SendNamedPipePopup(string message, string details = "")
+        public async Task SendNamedPipePopup(string message, string details = "", bool noPopUp = false)
         {
-            // TODO: Add no-popup-flag for silently logging service start/stop to system tray history
-
             using var client = new NamedPipeClientStream(".", pipeServerName, PipeDirection.Out);
 
             // try to connect to the server
@@ -143,11 +141,14 @@ namespace UPSMonitorService
                 return;
             }
 
-            // write the message
-            var msg = (string.IsNullOrEmpty(details)) 
-                ? message 
-                : $"{message}{separatorControlCode}{details}";
+            // build the message
+            var popupFlag = noPopUp ? NoPopupControlCode: string.Empty;
 
+            var msg = string.IsNullOrEmpty(details) 
+                ? $"{popupFlag}{message}"
+                : $"{popupFlag}{message}{separatorControlCode}{details}";
+
+            // send it!
             await WriteString(client, msg);
         }
 
