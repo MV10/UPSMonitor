@@ -49,17 +49,13 @@ namespace UPSMonitor
                         if (server.IsConnected)
                             server.Disconnect();
                     }
-                    catch (Exception ex)
-                    {
-                        //Output(LogLevel.Warning, $"{ex.GetType().Name} while trying to disconnect from switch pipe client");
-                    }
+                    catch
+                    { }
                 }
             }
-            catch (OperationCanceledException)
-            {
-                // normal, disregard
-            }
-            catch (Exception ex)
+            catch (OperationCanceledException) // normal, disregard
+            { }
+            catch
             { }
             finally
             {
@@ -76,18 +72,18 @@ namespace UPSMonitor
 
             try
             {
-                using (var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true))
+                using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);
+
+                var size = reader.ReadInt32();
+                if (size > 0)
                 {
-                    var size = reader.ReadInt32();
-                    if (size > 0)
-                    {
-                        var buffer = reader.ReadBytes(size);
-                        response = Encoding.ASCII.GetString(buffer);
-                    }
+                    var buffer = reader.ReadBytes(size);
+                    response = Encoding.ASCII.GetString(buffer);
                 }
+
                 await stream.FlushAsync();
             }
-            catch (Exception ex)
+            catch
             { }
 
             return response;

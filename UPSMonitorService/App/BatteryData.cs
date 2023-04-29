@@ -103,12 +103,11 @@ namespace UPSMonitorService
                 $"Charge: {ChargePct}%, {Runtime}";
         }
 
-
         private CimKeyedCollection<CimProperty> FindBatteryName(List<CimInstance> data)
         {
             foreach(var inst in data)
             {
-                if (inst.CimInstanceProperties["Name"].Equals(config.Settings.BatteryName)) 
+                if (inst.CimInstanceProperties["Name"].Value.Equals(config.Settings.BatteryName)) 
                     return inst.CimInstanceProperties;
             }
             return null;
