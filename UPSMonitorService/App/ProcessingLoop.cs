@@ -42,6 +42,9 @@ namespace UPSMonitorService.App
                 if (Environment.UserInteractive && config.Settings.NotificationPopups)
                     ToastNotificationManagerCompat.Uninstall();
             }
+
+            // log-only shutdown message (assuming the system tray app is listening...)
+            await notify.SendNamedPipePopup("UPSMonitor background service exiting", string.Empty, noPopUp: true);
         }
 
         private void LogConfiguration(Notify notifier)

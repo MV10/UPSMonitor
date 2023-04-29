@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace UPSMonitor
 {
     internal static class Program
@@ -8,6 +6,7 @@ namespace UPSMonitor
 
         internal static readonly string PipeServerName = "UPSMonitor";
         internal static readonly string SeparatorControlCode = "\u0014";
+        internal static readonly string NoPopupControlCode = "\u0020";
 
         private static SystemTrayApp trayApp = null;
         private static CancellationTokenSource ctsMessageServer = new();
@@ -18,6 +17,13 @@ namespace UPSMonitor
 
         static async Task MainAsync()
         {
+            MessageStorage.ReadHistory();
+            MessageHistory.Enqueue(new()
+            {
+                Content = "UPSMonitor system tray app starting"
+            });
+            MessageStorage.WriteHistory();
+
             List<Task> tasks = new()
             {
                 // start the UI
@@ -44,10 +50,15 @@ namespace UPSMonitor
 
         public static void Exit()
         {
+            MessageHistory.Enqueue(new()
+            {
+                Content = "UPSMonitor system tray app exiting"
+            });
+            MessageStorage.WriteHistory();
+
             ctsMessageServer.Cancel();
             trayApp.Dispose();
             Application.Exit();
         }
-
     }
 }
