@@ -6,8 +6,12 @@
     /// </summary>
     internal class MessageBuffer : Queue<Message>
     {
-        private readonly int capacity = 100;
-        private readonly object _lock = new();
+        private static readonly int capacity = 100;
+        private static readonly object _lock = new();
+
+        // Reaching capacity would cause the queue to allocate another 100 slots
+        public MessageBuffer() : base(capacity + 1)
+        { }
 
         new public void Enqueue(Message msg)
         {

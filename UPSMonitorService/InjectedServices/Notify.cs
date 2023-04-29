@@ -1,5 +1,4 @@
 ﻿
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Toolkit.Uwp.Notifications;
 using System.Diagnostics;
 using System.IO.Pipes;
@@ -69,7 +68,7 @@ namespace UPSMonitorService
                 email.Subject = config.Email.Subject;
                 email.Body = $"UPSMonitor update from {Environment.MachineName} at {DateTimeOffset.Now}\n\n{message}\n{details}";
 
-                var smtp = new SmtpClient(config.Email.MailServerDomain, config.Email.MailServerPort);
+                using var smtp = new SmtpClient(config.Email.MailServerDomain, config.Email.MailServerPort);
                 smtp.EnableSsl = config.Email.UseTLS;
                 smtp.Credentials = config.Email;
 
@@ -131,26 +130,25 @@ namespace UPSMonitorService
         {
             // TODO: Add no-popup-flag for silently logging service start/stop to system tray history
 
-            using (var client = new NamedPipeClientStream(".", pipeServerName, PipeDirection.Out))
+            using var client = new NamedPipeClientStream(".", pipeServerName, PipeDirection.Out);
+
+            // try to connect to the server
+            try
             {
-                // try to connect to the server
-                try
-                {
-                    client.Connect(pipeTimeoutMS);
-                }
-                catch (TimeoutException)
-                {
-                    Console.WriteLine("Popup notification not sent; UPSMonitor system tray application not listening?");
-                    return;
-                }
-
-                // write the message
-                var msg = (string.IsNullOrEmpty(details)) 
-                    ? message 
-                    : $"{message}{separatorControlCode}{details}";
-
-                await WriteString(client, msg);
+                await client.ConnectAsync(pipeTimeoutMS);
             }
+            catch (TimeoutException)
+            {
+                Console.WriteLine("Popup notification not sent; UPSMonitor system tray application not listening?");
+                return;
+            }
+
+            // write the message
+            var msg = (string.IsNullOrEmpty(details)) 
+                ? message 
+                : $"{message}{separatorControlCode}{details}";
+
+            await WriteString(client, msg);
         }
 
         private async Task WriteString(PipeStream stream, string message)
