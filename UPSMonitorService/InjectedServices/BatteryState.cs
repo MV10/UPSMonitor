@@ -27,11 +27,11 @@ namespace UPSMonitorService
             {
                 if (!string.IsNullOrEmpty(batt.Health))
                 {
-                    await notify.Send(EventLogEntryType.Error, "Service initialization may have failed.", batt.Health);
+                    await notify.Send(EventLogEntryType.Error, "Invalid BatteryState Data", "Service initialization may have failed.");
                     return;
                 }
 
-                await notify.Send(EventLogEntryType.Information, "Service has started, but no battery was found.");
+                await notify.Send(EventLogEntryType.Information, "No Battery", "Service has started, but no battery was found.");
                 return;
             }
 
@@ -60,11 +60,11 @@ namespace UPSMonitorService
             {
                 if (newBatt.Health.Equals("OK"))
                 {
-                    await notify.Send(EventLogEntryType.Information, "Battery health has returned to normal.");
+                    await notify.Send(EventLogEntryType.Information, "Battery Health", $"Battery health has returned to normal.\nHealth changed from {Battery.Health} to {newBatt.Health}.");
                 }
                 else
                 {
-                    await notify.Send(EventLogEntryType.Warning, $"Battery health has changed from {Battery.Health} to {newBatt.Health}. Service may be required.");
+                    await notify.Send(EventLogEntryType.Warning, "Battery Health", $"Battery health has changed from {Battery.Health} to {newBatt.Health}.\nService may be required.");
                 }
             }
 
@@ -77,19 +77,19 @@ namespace UPSMonitorService
             // Charge level notifications, most severe to least severe
             if (Battery.ChargePct > config.ChargeLevels.Critical && newBatt.ChargePct <= config.ChargeLevels.Critical)
             {
-                await ChargeNotification(newBatt, EventLogEntryType.Warning, "Battery at CRITICAL charge and falling.");
+                await ChargeNotification(newBatt, EventLogEntryType.Warning, "Battery Charge CRITICAL, Final Warning");
             }
             else if (Battery.ChargePct > config.ChargeLevels.Reserve && newBatt.ChargePct <= config.ChargeLevels.Reserve)
             {
-                await ChargeNotification(newBatt, EventLogEntryType.Warning, "Battery at RESERVE charge and falling.");
+                await ChargeNotification(newBatt, EventLogEntryType.Warning, "Battery Charge RESERVE");
             }
             else if (Battery.ChargePct > config.ChargeLevels.Advisory && newBatt.ChargePct <= config.ChargeLevels.Advisory)
             {
-                await ChargeNotification(newBatt, EventLogEntryType.Warning, "Battery at LOW charge and falling.");
+                await ChargeNotification(newBatt, EventLogEntryType.Warning, "Battery Charge LOW");
             }
             else if (Battery.ChargePct > config.ChargeLevels.Advisory && newBatt.ChargePct <= config.ChargeLevels.Advisory)
             {
-                await ChargeNotification(newBatt, EventLogEntryType.Information, "Battery charge is falling.");
+                await ChargeNotification(newBatt, EventLogEntryType.Information, "Battery Charge Advisory");
             }
 
             // Update the stored battery info
@@ -101,21 +101,21 @@ namespace UPSMonitorService
             // output summary
             if(string.IsNullOrEmpty(Battery?.Name))
             {
-                await notify.Send(EventLogEntryType.Information, "Service has started monitoring this battery:", batt.Summary);
+                await notify.Send(EventLogEntryType.Information, "Monitoring Started", batt.Summary);
             }
             else if(string.IsNullOrEmpty(batt.Name))
             {
-                await notify.Send(EventLogEntryType.Information, "Service is running, but is no longer monitoring any battery.");
+                await notify.Send(EventLogEntryType.Information, "Monitoring Ended", "Service is running, but is no longer monitoring any battery.");
             }
             else
             {
-                await notify.Send(EventLogEntryType.Information, "Service has changed to monitor this battery:", batt.Summary);
+                await notify.Send(EventLogEntryType.Information, "Monitoring Changed", batt.Summary);
             }
 
             // warn if battery is not healthy
             if (!string.IsNullOrEmpty(batt.Name) && !batt.Health.Equals("OK"))
             {
-                await notify.Send(EventLogEntryType.Warning, "Battery may require service.", $"Health: {batt.Health}");
+                await notify.Send(EventLogEntryType.Warning, "Battery Health", $"Battery may require service.\nHealth: {batt.Health}");
             }
 
             Battery = batt;
@@ -124,12 +124,12 @@ namespace UPSMonitorService
         private async Task StatusChanged(BatteryData batt)
         {
             // It appears only values 1 and 2 are used (Discharging and AC Power).
-            await notify.Send(EventLogEntryType.Information, $"Battery state changed from {BatteryData.BatteryStatusValues[Battery.Status]} to {BatteryData.BatteryStatusValues[batt.Status]}.");
+            await notify.Send(EventLogEntryType.Information, "Battery State", $"State changed from {BatteryData.BatteryStatusValues[Battery.Status]} to {BatteryData.BatteryStatusValues[batt.Status]}.");
         }
 
-        private async Task ChargeNotification(BatteryData batt, EventLogEntryType eventType, string message)
+        private async Task ChargeNotification(BatteryData batt, EventLogEntryType eventType, string title)
         {
-            await notify.Send(eventType, message, $"Charge: {Battery.ChargePct}%, {Battery.Runtime}");
+            await notify.Send(eventType, title, $"Charge: {Battery.ChargePct}%, {Battery.Runtime}");
         }
     }
 }

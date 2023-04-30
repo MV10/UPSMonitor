@@ -4,9 +4,14 @@ namespace UPSMonitor
     {
         public static MessageBuffer MessageHistory = new();
 
+        // the Windows Service connects to this
         internal static readonly string PipeServerName = "UPSMonitor";
-        internal static readonly string SeparatorControlCode = "\u0014";
-        internal static readonly string NoPopupControlCode = "\u0020";
+
+        // optional; separates the pop-up title line (in boldface) from the detail text
+        internal static readonly string TitleSeparator = "~";
+
+        // a message prefixed with this is only stored to history
+        internal static readonly string NoPopupPrefix = "@";
 
         private static SystemTrayApp trayApp = null;
         private static CancellationTokenSource ctsMessageServer = new();

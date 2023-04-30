@@ -26,7 +26,7 @@ namespace UPSMonitor
                         received = true;
 
                         // look for and strip the no-popup / log-only control code
-                        var noPopUp = message.StartsWith(Program.NoPopupControlCode);
+                        var noPopUp = message.StartsWith(Program.NoPopupPrefix);
                         if (noPopUp) message = message.Substring(1);
 
                         // store the raw message to history
@@ -39,10 +39,24 @@ namespace UPSMonitor
                         // display the pop-up
                         if(!noPopUp)
                         {
-                            message = message.Replace(Program.SeparatorControlCode, "\n");
-                            new ToastContentBuilder()
-                                .AddText(message)
-                                .Show();
+                            var sep = message.IndexOf(Program.TitleSeparator);
+                            if(sep == -1)
+                            {
+                                new ToastContentBuilder()
+                                    .AddText("Message")
+                                    .AddText(message)
+                                    .Show();
+                            }
+                            else
+                            {
+                                var title = message.Substring(0, sep);
+                                var detail = message.Substring(sep + 1);
+                                new ToastContentBuilder()
+                                    .AddText(title)
+                                    .AddText(detail)
+                                    .Show();
+                            }
+
                         }
                     }
 

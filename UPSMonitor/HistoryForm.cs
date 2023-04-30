@@ -29,6 +29,6 @@ namespace UPSMonitor
         private void lstMessages_SelectedIndexChanged(object sender, EventArgs e)
             => txtDetails.Text = messages[lstMessages.SelectedIndex].Content
                 .Replace("\n", "\r\n")
-                .Replace(Program.SeparatorControlCode, "\r\n");
+                .Replace(Program.TitleSeparator, "\r\n");
     }
 }

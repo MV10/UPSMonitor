@@ -11,10 +11,17 @@ namespace UPSMonitorService
     {
         private readonly Config config = null;
 
-        private static readonly string pipeServerName = "UPSMonitor";
-        private static readonly string separatorControlCode = "\u0014";
-        internal static readonly string NoPopupControlCode = "\u0020";
-        private static readonly int pipeTimeoutMS = 100; // high, 10 is probably OK for local machine...
+        // provided by UPS Monitor system tray app
+        private static readonly string PipeServerName = "UPSMonitor";
+
+        // optional; separates the pop-up title line (in boldface) from the detail text
+        private static readonly string TitleSeparator = "~";
+
+        // a message prefixed with this is only stored to history
+        internal static readonly string NoPopupPrefix = "@";
+
+        // high, 10 is probably OK for local machine...
+        private static readonly int pipeTimeoutMS = 100; 
 
         public Notify(Config appConfig)
         {
@@ -22,35 +29,42 @@ namespace UPSMonitorService
         }
 
         /// <summary>
-        /// Sends a message and details to all configured notification channels.
+        /// Sends a message to all configured notification channels. For pop-ups, the
+        /// details field may contain four lines separated by \n newline characters. If
+        /// only a title is provided, for pop-up purposes it will be shown as the detail
+        /// text and a title of "Message" will be shown. (Pop-up titles are in boldface.)
         /// </summary>
-        public async Task Send(EventLogEntryType eventType, string message, string details = "")
+        public async Task Send(EventLogEntryType eventType, string title, string details = "")
         {
             // popup has limited space, don't prefix the eventType
-            await SendPopup(message, details);
+            await SendPopup(title, details);
 
-            var flaggedMessage = $"{eventType.ToString().ToUpper()} - {message}";
+            // for everything else, prefix the eventType (Information, Warning, Error)
+            var flaggedMessage = $"{eventType.ToString().ToUpper()} - {title}";
+
             SendConsole(flaggedMessage, details);
+
             SendEventLog(eventType, flaggedMessage, details);
+
             await SendEmail(flaggedMessage, details);
         }
 
         /// <summary>
-        /// Sends a message and details to the Windows Application Event Log, if enabled.
+        /// Sends a message to the Windows Application Event Log, if enabled.
         /// </summary>
-        public void SendEventLog(EventLogEntryType eventType, string message, string details = "")
+        public void SendEventLog(EventLogEntryType eventType, string title, string details = "")
         {
             if (!config.Settings.NotificationEventLog) return;
 
             Task.Run(() =>
-                EventLog.WriteEntry("Application", $"UPSMonitor\n{message}\n{details}", eventType, 9001)
+                EventLog.WriteEntry("Application", $"UPSMonitor\n{title}\n{details}", eventType, 9001)
                 ).FireAndForget();
         }
 
         /// <summary>
-        /// Sends a message and details via Email, if enabled.
+        /// Sends a message via email, if enabled.
         /// </summary>
-        public async Task SendEmail(string message, string details = "")
+        public async Task SendEmail(string title, string details = "")
         {
             // MS says don't use this mail client...
             // https://github.com/dotnet/platform-compat/blob/master/docs/DE0005.md
@@ -66,7 +80,7 @@ namespace UPSMonitorService
                 var recipients = config.Email.RecipientList.Split(',');
                 foreach (var addr in recipients) email.To.Add(addr);
                 email.Subject = config.Email.Subject;
-                email.Body = $"UPSMonitor update from {Environment.MachineName} at {DateTimeOffset.Now}\n\n{message}\n{details}";
+                email.Body = $"UPSMonitor update from {Environment.MachineName} at {DateTimeOffset.Now}\n\n{title}\n{details}";
 
                 using var smtp = new SmtpClient(config.Email.MailServerDomain, config.Email.MailServerPort);
                 smtp.EnableSsl = config.Email.UseTLS;
@@ -85,50 +99,50 @@ namespace UPSMonitorService
         }
 
         /// <summary>
-        /// Sends a message and details via Windows "toast" pop-up, if enabled. When running
+        /// Sends a message shown as a Windows "toast" pop-up, if enabled. When running
         /// non-interactively (e.g. as a Windows Service), this will send a Named Pipes message
         /// to the UPSMonitor system tray service.
         /// </summary>
-        public async Task SendPopup(string message, string details = "")
+        public async Task SendPopup(string title, string details = "")
         {
             if (!config.Settings.NotificationPopups) return;
 
             if(Environment.UserInteractive && !config.Settings.RemotePopupOnly)
             {
                 new ToastContentBuilder()
-                    .AddText(message)
+                    .AddText(title)
                     .AddText(details)
                     .Show();
             }
             else
             {
-                await SendNamedPipePopup(message, details);
+                await SendNamedPipePopup(title, details);
             }
         }
 
         /// <summary>
-        /// Sends a message and details to the Console when running interactively.
+        /// Sends a message to the Console when running interactively.
         /// </summary>
-        public void SendConsole(string message, string details = "")
+        public void SendConsole(string title, string details = "")
         {
             if (!Environment.UserInteractive) return;
 
             if(!string.IsNullOrEmpty(details))
             {
-                Console.WriteLine($"{message}\n{details}");
+                Console.WriteLine($"{title}\n{details}");
             }
             else
             {
-                Console.WriteLine(message);
+                Console.WriteLine(title);
             }
         }
 
         /// <summary>
         /// Sends a message and details via Named Pipe to the UPSMonitor system tray service.
         /// </summary>
-        public async Task SendNamedPipePopup(string message, string details = "", bool noPopUp = false)
+        public async Task SendNamedPipePopup(string title, string details = "", bool noPopUp = false)
         {
-            using var client = new NamedPipeClientStream(".", pipeServerName, PipeDirection.Out);
+            using var client = new NamedPipeClientStream(".", PipeServerName, PipeDirection.Out);
 
             // try to connect to the server
             try
@@ -142,26 +156,26 @@ namespace UPSMonitorService
             }
 
             // build the message
-            var popupFlag = noPopUp ? NoPopupControlCode: string.Empty;
+            var popupFlag = noPopUp ? NoPopupPrefix: string.Empty;
 
-            var msg = string.IsNullOrEmpty(details) 
-                ? $"{popupFlag}{message}"
-                : $"{popupFlag}{message}{separatorControlCode}{details}";
+            var content = string.IsNullOrEmpty(details) 
+                ? $"{popupFlag}{title}"
+                : $"{popupFlag}{title}{TitleSeparator}{details}";
 
             // send it!
-            await WriteString(client, msg);
+            await WriteString(client, content);
         }
 
-        private async Task WriteString(PipeStream stream, string message)
+        private async Task WriteString(PipeStream stream, string content)
         {
             try
             {
-                var messageBuffer = Encoding.ASCII.GetBytes(message);
+                var messageBuffer = Encoding.ASCII.GetBytes(content);
 
                 var sizeBuffer = BitConverter.GetBytes(messageBuffer.Length);
                 await stream.WriteAsync(sizeBuffer, 0, sizeBuffer.Length);
 
-                if (message.Length > 0)
+                if (content.Length > 0)
                     await stream.WriteAsync(messageBuffer, 0, messageBuffer.Length);
 
                 stream.WaitForPipeDrain();
