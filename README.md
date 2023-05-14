@@ -5,6 +5,12 @@ AC and battery power, and can log a few other status events.
 
 Later I will link to a technical article about this on my blog, [mcguirev10](https://mcguirev10.com).
 
+This is an actual notification from my computer. The machine was rebooted on Wednesday, at which
+point the service sent notification that it was monitoring my APC SmartUPS. Then on Saturday
+there was a momentary power outage and the switches to battery then back to AC power were logged.
+
+![example](https://mcguirev10.com/assets/2023/05-14/notifications.jpg)
+
 ## First-Time Installation
 
 * Download the [v1.0.0](https://github.com/MV10/UPSMonitor/releases/tag/v1.0.0) archive file.
@@ -152,11 +158,3 @@ able to track that and keep this document up to date. (The good news is that old
 continue to work even when they change the UI. I have used something similar to allow my security 
 system and network storage devices to email notifications for several years and haven't had to change
 their configurations.)
-
-## Pop-Up Notice Example ##
-
-This is an actual notification from my computer. The machine was rebooted on Wednesday, at which
-point the service sent notification that it was monitoring my APC SmartUPS. Then on Saturday
-there was a momentary power outage and the switches to battery then back to AC power were logged.
-
-![example](https://mcguirev10.com/assets/2023/05-14/notifications.jpg)
