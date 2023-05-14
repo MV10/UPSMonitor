@@ -153,3 +153,10 @@ continue to work even when they change the UI. I have used something similar to 
 system and network storage devices to email notifications for several years and haven't had to change
 their configurations.)
 
+## Pop-Up Notice Example ##
+
+This is an actual notification from my computer. The machine was rebooted on Wednesday, at which
+point the service sent notification that it was monitoring my APC SmartUPS. Then on Saturday
+there was a momentary power outage and the switches to battery then back to AC power were logged.
+
+![example](https://mcguirev10.com/assets/2023/05-14/notifications.jpg)
