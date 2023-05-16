@@ -3,11 +3,12 @@
 A simple service that notifies and logs when a UPS backup switches between
 AC and battery power, and can log a few other status events.
 
-Later I will link to a technical article about this on my blog, [mcguirev10](https://mcguirev10.com).
+If you're interested in the technical details, read [the article](https://mcguirev10.com/2023/05/14/ups-monitor-battery-backup-event-notifications.html) on my blog.
 
 This is an actual notification from my computer. The machine was rebooted on Wednesday, at which
 point the service sent notification that it was monitoring my APC SmartUPS. Then on Saturday
-there was a momentary power outage and the switches to battery then back to AC power were logged.
+there was a momentary power outage and the service sent notifications when the UPS switched over
+to battery power, and then back to AC power.
 
 ![example](https://mcguirev10.com/assets/2023/05-14/notifications.jpg)
 
@@ -48,6 +49,7 @@ This key is just a history of the last 100 events logged by the monitor.
 * Optional ability to log details to the Windows Event Log
 * Optional ability to send details via email
 * Event history via Windows System Tray app (right-click the tray icon)
+* Only uses about 40MB at runtime.
 
 ## Configuration (appsettings.json)
 
